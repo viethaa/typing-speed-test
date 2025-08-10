@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Typing Speed Tester — Dark Sleek</title>
+  <style>
+    :root{
+      --bg:linear-gradient(135deg, #000000 0%, #0a0a0a 50%, #1a1a1a 100%);
+      --panel:#141414;
+      --panel-2:#1a1a1a;
+      --text:#f0f0f0;
+      --muted:#777;
+      --accent:#59ffa8;
+      --accent-2:#ffd166;
+      --ok:#59ffa8;
+      --bad:#ff5d7a;
+      --warn:#ffe38f;
+      --shadow:0 12px 40px rgba(0,0,0,.45);
+      --radius:18px;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%;min-height:100vh;background:linear-gradient(135deg, #000000 0%, #0a0a0a 50%, #1a1a1a 100%);background-attachment:fixed;color:var(--text);font:500 16px/1.6 sans-serif;display:grid;place-items:center;margin:0;padding:0;}
+    .wrap{width:min(900px, 92vw);}
+    .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+    h1{font-size:24px;}
+    .card{background:var(--panel);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px;}
+    .tip-box{background:var(--panel-2);border:2px solid #ffffff80;border-radius:12px;padding:12px 16px;margin-bottom:20px;text-align:center;color:var(--muted);font-size:13px;transition:opacity 0.5s ease;}
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+    .stat{background:var(--panel-2);border-radius:14px;padding:12px 14px;}
+    .stat span{color:var(--muted);font-size:12px}
+    .value{font-size:22px;font-weight:700}
+    .bar{height:12px;background:#000;border-radius:999px;overflow:hidden;margin-bottom:14px;position:relative}
+    .bar > i{display:block;height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--accent-2));transition:width .25s ease;position:relative}
+    .car{position:absolute;top:-10px;left:0;width:24px;height:24px;background:url('https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/Car_top_view.svg/64px-Car_top_view.svg.png') no-repeat center/contain;transition:left .25s ease}
+    .textbox{background:var(--panel-2);border-radius:16px;padding:18px;min-height:160px;font-size:20px;line-height:1.9;cursor:text;user-select:none;}
+    .ch.pending{color:#555}
+    .ch.correct{color:var(--ok);transition:transform 0.1s ease;}
+    .ch.error{color:var(--bad);transition:transform 0.1s ease;}
+    .ch.correct.flash,.ch.error.flash{transform:scale(1.2);}
+    .caret::after{content:"";position:absolute;left:-1px;top:4px;bottom:4px;width:2px;background:var(--warn);animation:blink 1.2s ease-in-out infinite;}
+    @keyframes blink{0%,49%{opacity:1}50%,100%{opacity:.15}}
+    .controls{display:flex;gap:10px;margin-top:16px}
+    .btn{background:var(--panel-2);border:none;color:var(--text);border-radius:12px;padding:10px 14px;cursor:pointer;transition:background 0.2s}
+    .btn:hover{background:var(--accent);color:#000;}
+    .footer{display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:12px;margin-top:18px}
+    .legal{position:fixed;left:16px;bottom:12px;color:var(--muted);font-size:12px;}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <h1>Typing Speed Tester</h1>
+    </div>
+    <div class="card">
+      <div class="tip-box" id="tipBox">
+        💡 Tip: Start typing to begin the 1-minute test. Focus on accuracy first!
+      </div>
+      <div class="stats">
+        <div class="stat"><span>WPM</span><div class="value" id="wpm">0</div></div>
+        <div class="stat"><span>Accuracy</span><div class="value" id="acc">100%</div></div>
+        <div class="stat"><span>Time</span><div class="value" id="time">01:00</div></div>
+        <div class="stat"><span>Chars</span><div class="value" id="chars">0/0</div></div>
+      </div>
+      <div class="bar"><i id="progress"></i><div class="car" id="car"></div></div>
+      <div class="textbox" id="textbox"></div>
+      <div class="controls">
+        <button class="btn" id="restart">Restart</button>
+        <button class="btn" id="newText">New Text</button>
+      </div>
+    </div>
+  </div>
+  <div class="legal">© 2025 Ha Bach Viet. All rights reserved.</div>
+<script>
+const TEXTS = [
+  `Practice makes progress, not perfection. Keep your hands relaxed and your eyes on the words as they appear. Type steadily and focus on accuracy first, letting speed build naturally over time. The best typists maintain rhythm and form without rushing their fingers or tensing their shoulders.`,
+  `Typing is like a quiet race where the goal is consistency. Smooth keystrokes are more important than sudden bursts of speed. As you type, remember that each letter is a step forward and mistakes are just small detours that can be corrected with patience.`,
+  `Build your typing stamina with short, focused sessions. Good posture, relaxed wrists, and a calm mind all contribute to improved results. Over time, your fingers will learn the pathways between keys, turning words into muscle memory.`,
+  `Accuracy is the foundation for speed. It is better to type correctly and slowly than to rush with errors. Treat each word as a complete thought and maintain even breathing as you move from sentence to sentence.`
+];
+
+const TIPS = [
+  "💡 Tip: Start typing to begin the 1-minute test. Focus on accuracy first!",
+  "🤲 Tip: Keep your wrists straight and fingers curved over the keys.",
+  "🎯 Tip: Look at the screen, not your keyboard. Trust your muscle memory!",
+  "⚡ Tip: Maintain a steady rhythm instead of rushing through words.",
+  "🧘 Tip: Stay relaxed and breathe normally while typing.",
+  "✋ Tip: Use all your fingers, not just your index fingers!",
+  "📍 Tip: Position your hands on the home row (ASDF JKL;) to start.",
+  "🏋️ Tip: Practice little and often rather than long sessions.",
+  "🎵 Tip: Find your typing rhythm and stick to it consistently.",
+  "👀 Tip: Read ahead of what you're typing to improve flow.",
+  "⏱️ Tip: Speed comes naturally with practice - prioritize accuracy!",
+  "🚫 Tip: Avoid looking down at the keyboard during the test."
+];
+
+const box=document.getElementById('textbox');
+const wpmEl=document.getElementById('wpm');
+const accEl=document.getElementById('acc');
+const timeEl=document.getElementById('time');
+const charsEl=document.getElementById('chars');
+const progressEl=document.getElementById('progress');
+const carEl=document.getElementById('car');
+const tipBox=document.getElementById('tipBox');
+let target="",spans=[],index=0,errors=0,startedAt=null,timer=null,timeLeft=60000,testCompleted=false,finalWPM=0,tipTimer=null;
+
+const ctx = new (window.AudioContext || window.webkitAudioContext)();
+
+function keySound(correct){
+  const o = ctx.createOscillator();
+  const g = ctx.createGain();
+  o.type = 'sine';
+  o.frequency.value = correct ? 880 : 180;
+  const now = ctx.currentTime;
+  g.gain.setValueAtTime(0, now);
+  g.gain.linearRampToValueAtTime(correct ? 0.2 : 0.25, now + 0.005);
+  g.gain.exponentialRampToValueAtTime(0.0001, now + 0.12);
+  o.connect(g).connect(ctx.destination);
+  o.start(now);
+  o.stop(now + 0.14);
+}
+
+function fmtTime(ms){const s=Math.max(0,Math.floor(ms/1000)),m=Math.floor(s/60),r=s%60;return`${String(m).padStart(2,'0')}:${String(r).padStart(2,'0')}`}
+
+function computeWPM(){
+  if(!startedAt)return 0;
+  if(testCompleted)return finalWPM;
+  const elapsedMin=(60000-timeLeft)/60000;
+  const correct=Math.max(0,index-errors);
+  return Math.round((correct/5)/Math.max(elapsedMin,1/60));
+}
+
+function computeAcc(){return Math.round(((index-errors)/Math.max(index,1))*100)}
+
+function updateStats(){
+  wpmEl.textContent=computeWPM();
+  accEl.textContent=computeAcc()+"%";
+  timeEl.textContent=fmtTime(timeLeft);
+  charsEl.textContent=`${index}/${target.length}`;
+  const pct=(index/target.length)*100;
+  progressEl.style.width=pct+"%";
+  carEl.style.left=`calc(${pct}% - 12px)`;
+}
+
+function updateTip(){
+  tipBox.style.opacity = '0';
+  setTimeout(() => {
+    const randomTip = TIPS[Math.floor(Math.random() * TIPS.length)];
+    tipBox.textContent = randomTip;
+    tipBox.style.opacity = '1';
+  }, 250);
+}
+
+function startTipRotation(){
+  if(tipTimer) clearInterval(tipTimer);
+  tipTimer = setInterval(updateTip, 7000);
+}
+
+function stopTipRotation(){
+  if(tipTimer) clearInterval(tipTimer);
+}
+
+function setText(t){
+  target=t;index=0;errors=0;startedAt=null;timeLeft=60000;testCompleted=false;finalWPM=0;
+  clearInterval(timer);
+  stopTipRotation();
+  startTipRotation();
+  box.innerHTML='';
+  spans=[];
+  for(let ch of t){
+    const s=document.createElement('span');
+    s.textContent=ch;
+    s.className='ch pending';
+    spans.push(s);
+    box.appendChild(s)
+  };
+  updateStats();
+}
+
+function tick(){
+  timeLeft-=1000;
+  if(timeLeft<=0){
+    timeLeft=0;
+    testCompleted=true;
+    finalWPM=computeWPM();
+    clearInterval(timer);
+    stopTipRotation();
+  }
+  updateStats();
+}
+
+function handleKey(e){
+  if(testCompleted)return;
+  if(!startedAt){startedAt=Date.now();timer=setInterval(()=>{tick()},1000);}
+  if(timeLeft<=0)return;
+  if(e.key==='Backspace'){if(index>0){index--;spans[index].className='ch pending';updateStats()}return;}
+  if(e.key.length===1){
+    if(index>=target.length){
+      testCompleted=true;
+      finalWPM=computeWPM();
+      clearInterval(timer);
+      stopTipRotation();
+      return;
+    }
+    const correct=e.key===target[index];
+    spans[index].className=correct?'ch correct flash':'ch error flash';
+    keySound(correct);
+    if(!correct)errors++;
+    index++;
+    updateStats();
+  }
+}
+
+document.addEventListener('keydown',handleKey);
+document.getElementById('restart').onclick=()=>setText(target);
+document.getElementById('newText').onclick=()=>setText(TEXTS[Math.floor(Math.random()*TEXTS.length)]);
+
+// Initialize
+setText(TEXTS[0]);
+startTipRotation();
+</script>
+</body>
+</html>
